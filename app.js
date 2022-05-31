@@ -16,14 +16,13 @@ let  parsedPOdata
 app.post('/register', async (request,response) =>{
     const usercreds = request.body
     const {username, password}= usercreds
-    console.log(usercreds)
     const hashedPassword = await bcrypt.hash(password, 10)
 
     fs.readFile('./registeredUsers.json','utf-8',(err,jsonString)=>{
        
         let c = true;
         let registeredUsersdata = JSON.parse(jsonString)
-        console.log(registeredUsersdata)
+        
         registeredUsersdata.forEach(element =>{
             if (element.username===username){
                 c = false
@@ -35,7 +34,7 @@ app.post('/register', async (request,response) =>{
              
         const newUser = {"username":username,"password":hashedPassword}
         registeredUsersdata.push(newUser)
-        console.log(hashedPassword)
+  
 
         fs.writeFile('./registeredUsers.json',JSON.stringify(registeredUsersdata), (err,jsonString)=>{
             response.send("Completed") 
@@ -62,7 +61,7 @@ app.post("/addItem",(request,response)=>{
         let NewList = parsedInventorydata.map(eachItem =>{
 
             if (eachItem.itemName.toLowerCase()===NameoftheItem.toLowerCase()){
-                console.log("adding")
+             
                 eachItem.Quantity =eachItem.Quantity+Quantity
                 return eachItem
             }
@@ -156,7 +155,7 @@ app.post("/addpo",(request,response) =>{
         })
         }
         fs.writeFile('./database.json',JSON.stringify(parsedInventorydata), (err,jsonString)=>{
-            console.log(parsedInventorydata)   
+            
         })         
         }
         response.send(outOfStack)
@@ -173,7 +172,7 @@ app.get('/search' ,(request,response) =>{
         const {searchInput} = request.body
 
         const searchResult = parsedInventorydata.filter(eachItem =>(eachItem.itemName.toLowerCase().includes(searchInput.toLowerCase())))
-        console.log(searchResult)
+       
         response.send(searchResult)
     })
 
