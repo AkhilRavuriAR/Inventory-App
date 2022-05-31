@@ -1,7 +1,0 @@
-POST http://localhost:8001/addItem
-Content-Type: application/json
-
-{
-  "username":"JoeBiden",
-  "password":"biden@123"
-}
