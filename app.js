@@ -3,8 +3,11 @@ const app = express();
 const uuid = require("uuid").v4;
 const path = require('path')
 const bcrypt = require("bcrypt")
+const jwt = require("jsonwebtoken");
 const fs = require('fs');
 const req = require("express/lib/request");
+const NodeCache = require( "node-cache" );
+const myCache = new NodeCache(); 
 
 
 app.use(express.json())
@@ -46,7 +49,70 @@ app.post('/register', async (request,response) =>{
 
 })
 
-app.post("/addItem",(request,response)=>{
+
+const UserLoginCheck = (request, response, next) =>{
+    const { username } = request.body;
+   
+    fs.readFile('./registeredUsers.json','utf-8',(err,jsonString)=>{
+        let registeredUsersdata = JSON.parse(jsonString)
+        let user = registeredUsersdata.find(element =>(element.username===username))
+
+        if (user===undefined){
+            
+            resonse.send("The user is not registered")
+        }else{
+            request.user = user
+            next()
+        }
+    })
+}
+
+const PasswordLoginCheck = async (request, response, next) =>{
+   
+    const user  = request.user 
+    const {password} = request.body 
+    const passwordcheck = await bcrypt.compare(password,user.password)
+    if (passwordcheck===true){
+        next()
+    }else{
+        response.send("Password didnt match")
+    }
+}
+
+
+app.post("/login", UserLoginCheck, PasswordLoginCheck, (request, response) => {
+    const { username, password } = request.body;
+    const payload = { username: username };
+    const jwtToken = jwt.sign(payload, "abcd");
+    response.send({ jwtToken: jwtToken });
+  });
+
+
+const JwtTokenValidation = async (request, response, next) => {
+    let jwtToken;
+    const authHeader = request.headers["authorization"];
+  
+    if (authHeader !== undefined) {
+      jwtToken = authHeader.split(" ")[1];
+    }
+  
+    if (jwtToken === undefined) {
+      response.status(401);
+      response.send("Invalid JWT Token");
+    } else {
+      jwt.verify(jwtToken, "abcd", async (error, payload) => {
+        if (error) {
+          response.status(401);
+          response.send("Invalid JWT Token");
+        } else {
+          request.username = payload.username;
+          next();
+        }
+      });
+    }
+  };
+
+app.post("/addItem",JwtTokenValidation ,(request,response)=>{
 
     fs.readFile('./database.json','utf-8',(err,jsonString)=>{
 
@@ -90,7 +156,7 @@ app.post("/addItem",(request,response)=>{
 })
 
 
-app.post("/addpo",(request,response) =>{
+app.post("/addpo", JwtTokenValidation, (request,response) =>{
     fs.readFile('./database.json','utf-8',(err,jsonString)=>{
 
         parsedInventorydata = JSON.parse(jsonString)
@@ -128,10 +194,6 @@ app.post("/addpo",(request,response) =>{
                
             }) 
 
-            
-        
-        console.log(poId)
-
             const podetails = {
                 "id":poId,
                 "order":outOfStack,
@@ -164,7 +226,7 @@ app.post("/addpo",(request,response) =>{
     )     
 
 
-app.get('/search' ,(request,response) =>{
+app.get('/search' , JwtTokenValidation, (request,response) =>{
     fs.readFile('./database.json','utf-8',(err,jsonString)=>{
 
         parsedInventorydata = JSON.parse(jsonString)
@@ -179,7 +241,7 @@ app.get('/search' ,(request,response) =>{
 })
 
 
-app.get('/orderstatus', (request,response)=>{
+app.get('/orderstatus', JwtTokenValidation, (request,response)=>{
     const orderId = request.body.id
     fs.readFile('./Purchaseorder.json','utf-8',(err,jsonString)=>{
         
